@@ -14,7 +14,7 @@ I plan to use the following procedures
 - add comments explaining code as required.
 - document code in separate file.
 - capture pseudo code in separate file.
-- create diagram as appropriate.  I may decide to change this, as the peer reviewed articles typicall do this already.
+- create diagram as appropriate.  I may decide to change this, as the peer reviewed articles typically do this already.
 
 ### Skills Learned
 - Follow structured code writing procedures, from psuedo code to documentation.

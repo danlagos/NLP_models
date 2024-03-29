@@ -122,6 +122,6 @@ class SelfAttention(nn.Module):
             N, query_len, self.heads * self.head_dim
         )
         
-        # out shape: (N, query_len, heads, head_dim)
+        # fc_out matches embed_size to embed_size
         out = self.fc_out(out)
         return out

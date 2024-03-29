@@ -125,3 +125,20 @@ class SelfAttention(nn.Module):
         # fc_out matches embed_size to embed_size
         out = self.fc_out(out)
         return out
+    
+class TransformerBlock(nn.Module):
+    def __init__(self, embed_size, heads, dropout, forward_expansion):
+        super(TransformerBlock, self).__init__()
+        self.attention = SelfAttention(embed_size, heads) # self attention
+        self.norm1 = nn.LayerNorm(embed_size) # layer normalization
+        self.norm2 = nn.LayerNorm(embed_size) # layer normalization
+        
+        # feed forward network
+        # input is embed_size, output is embed_size
+        # input is passed through a linear layer, then a ReLU activation function, then another linear layer
+        self.feed_forward = nn.Sequential( 
+            nn.Linear(embed_size, forward_expansion * embed_size),
+            nn.ReLU(),
+            nn.Linear(forward_expansion * embed_size, embed_size),
+        )
+        self.dropout = nn.Dropout(dropout)

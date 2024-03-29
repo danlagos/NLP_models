@@ -141,4 +141,11 @@ class TransformerBlock(nn.Module):
             nn.ReLU(),
             nn.Linear(forward_expansion * embed_size, embed_size),
         )
-        self.dropout = nn.Dropout(dropout)
+        self.dropout = nn.Dropout(dropout) # dropout
+        
+    def forward(self, value, key, query, mask):
+        attention = self.attention(value, key, query, mask) # self attention
+        x = self.dropout(self.norm1(attention + query)) # add & norm layer
+        forward = self.feed_forward(x) # feed forward network
+        out = self.dropout(self.norm2(forward + x)) # add & norm layer
+        return out # output

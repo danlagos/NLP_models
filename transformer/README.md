@@ -7,7 +7,7 @@ Reverse engineer a transformer from "Attention is all you need" by Vaswani et al
 The transformer model, introduced in the groundbreaking paper "Attention is All You Need" by Vaswani et al., has revolutionized the field of natural language processing (NLP) and beyond. At its core, the transformer model utilizes a mechanism known as "self-attention" to process sequences of data in parallel, enabling more efficient and effective learning from large datasets. This architecture has paved the way for the development of highly sophisticated models such as GPT (Generative Pre-trained Transformer) and BERT (Bidirectional Encoder Representations from Transformers), which have set new standards for a variety of tasks including machine translation, text generation, and semantic analysis. This project aims to reverse engineer the transformer model from Vaswani et al.'s paper, with the objective of gaining a deeper understanding of its mechanisms and applications. Through a meticulous process of writing pseudo code, implementing the model in Python, and thoroughly documenting the development process, this endeavor seeks to demystify the inner workings of transformers and contribute to the broader knowledge base surrounding this influential architecture.
 
 ### Requirements
-You will need the most updated version of Python, and Pytorch
+You will need the most updated version of Python, and Pytorch.  Make sure your pytorch installation suppoerts CUDA.
 
 ### Project Structure
 - transformer.py: The main Python script implementing the transformer model based on the pseudo code

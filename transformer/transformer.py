@@ -73,6 +73,9 @@ notes on multi-head attention:
 import torch
 import torch.nn as nn
 
+""" 
+The class initializes with the size of embeddings and the number of heads for multi-head attention. It ensures the embedding size is divisible by the number of heads. Inside, linear layers for values, keys, queries, and a final output are set up. The forward method reshapes inputs for multi-head processing, computes attention scores using scaled dot products (enhanced by a masking mechanism for padding), and combines the results through weighted sum and a final linear transformation
+"""
 # Self Attention Block
 class SelfAttention(nn.Module):
     def __init__(self, embed_size, heads):
@@ -128,34 +131,44 @@ class SelfAttention(nn.Module):
         out = self.fc_out(out)
         return out
 
-# start transformer block    
+""" 
+start transformer block 
+This class defines a single transformer block, which includes self-attention followed by layer normalization, a feed-forward network, and another layer normalization step, all with dropout for regularization. The process integrates self-attention output with the original input (residual connection) before normalization, mirroring the transformer's characteristic path of flowing information
+"""
+# Transformer Block
 class TransformerBlock(nn.Module):
     def __init__(self, embed_size, heads, dropout, forward_expansion):
         super(TransformerBlock, self).__init__()
-        self.attention = SelfAttention(embed_size, heads) # self attention
-        self.norm1 = nn.LayerNorm(embed_size) # layer normalization
-        self.norm2 = nn.LayerNorm(embed_size) # layer normalization
+        self.attention = SelfAttention(embed_size, heads) # Initialize self-attention mechanism
+        self.norm1 = nn.LayerNorm(embed_size) # First layer normalization
+        self.norm2 = nn.LayerNorm(embed_size) # Second layer normalization
         
-        # feed forward network
-        # input is embed_size, output is embed_size
-        # input is passed through a linear layer, then a ReLU activation function, then another linear layer
+        # Initialize feed forward network
+        # Expands the embedding size before reducing it back, adding capacity to the model
         self.feed_forward = nn.Sequential( 
             nn.Linear(embed_size, forward_expansion * embed_size),
-            nn.ReLU(),
+            nn.ReLU(), # Activation function for non-linearity
             nn.Linear(forward_expansion * embed_size, embed_size),
         )
-        self.dropout = nn.Dropout(dropout) # dropout
+        self.dropout = nn.Dropout(dropout) # Dropout for regularization
         
     def forward(self, value, key, query, mask):
-        attention = self.attention(value, key, query, mask) # self attention
-        x = self.dropout(self.norm1(attention + query)) # add & norm layer
-        forward = self.feed_forward(x) # feed forward network
-        out = self.dropout(self.norm2(forward + x)) # add & norm layer
-        return out # output
-
-# start encoder    
+        # Compute self-attention
+        attention = self.attention(value, key, query, mask) 
+        # Apply dropout, then layer normalization (add & norm)
+        x = self.dropout(self.norm1(attention + query)) 
+        # Pass through feed forward network
+        forward = self.feed_forward(x) 
+        # Final dropout and normalization (add & norm)
+        out = self.dropout(self.norm2(forward + x)) 
+        return out # Return output
+    
+"""
+start encoder    
+This Encoder class is designed for the encoding phase of a transformer model. It creates embeddings for input tokens and applies positional encoding to retain information about the position of tokens in the input sequence. These embeddings are then processed through multiple transformer blocks, which apply self-attention and feed-forward networks to encode the input into a format useful for downstream tasks.
+"""
+# Start encoder
 class Encoder(nn.Module):
-    # this contains the hyperparameters of our model
     def __init__(
         self,
         src_vocab_size,
@@ -165,13 +178,16 @@ class Encoder(nn.Module):
         device,
         forward_expansion,
         dropout,
-        max_length, # max length of the sentence.  Used for positional encoding
+        max_length,  # max length of the sentence for positional encoding
     ):
         super(Encoder, self).__init__()
         self.embed_size = embed_size
         self.device = device
-        self.word_embedding = nn.Embedding(src_vocab_size, embed_size) # embedding
-        self.position_embedding = nn.Embedding(max_length, embed_size) # positional encoding
+        # Embedding layer for input tokens
+        self.word_embedding = nn.Embedding(src_vocab_size, embed_size)
+        # Embedding layer for positional encoding
+        self.position_embedding = nn.Embedding(max_length, embed_size)
+        # Stack of Transformer blocks
         self.layers = nn.ModuleList(
             [
                 TransformerBlock(
@@ -186,35 +202,53 @@ class Encoder(nn.Module):
         self.dropout = nn.Dropout(dropout)
         
     def forward(self, x, mask):
+        # Get batch size and sequence length
         N, seq_length = x.shape
+        # Generate positional indices and move to device
         positions = torch.arange(0, seq_length).expand(N, seq_length).to(self.device)
         
+        # Apply dropout to the sum of token embeddings and positional encodings
         out = self.dropout(
-            (self.word_embedding(x) + self.position_embedding(positions)) # add positional encoding
+            self.word_embedding(x) + self.position_embedding(positions)
         )
         
+        # Pass through each Transformer layer
         for layer in self.layers:
             out = layer(out, out, out, mask)
         
         return out
 
-# start decoder block
+
+""" 
+The DecoderBlock class is part of the transformer's decoder. It processes the target sequence input through self-attention and a transformer block, using both the source and target masks to appropriately limit the attention scope. This setup enables the model to focus on relevant input parts and prevent future token information from influencing the prediction of the current token.
+"""
+# Start decoder block
 class DecoderBlock(nn.Module):
     def __init__(self, embed_size, heads, forward_expansion, dropout, device):
         super(DecoderBlock, self).__init__()
-        self.attention = SelfAttention(embed_size, heads=heads) # self attention
-        self.norm = nn.LayerNorm(embed_size) # layer normalization
-        self.transformer_block = TransformerBlock( # transformer block
+        # Self-attention mechanism for the decoder's input
+        self.attention = SelfAttention(embed_size, heads=heads)
+        # Normalization layer for stabilizing the learning process
+        self.norm = nn.LayerNorm(embed_size)
+        # Transformer block for processing the output of the self-attention layer and the encoder's output
+        self.transformer_block = TransformerBlock(
             embed_size, heads, dropout, forward_expansion
         )
+        # Dropout for regularization to prevent overfitting
         self.dropout = nn.Dropout(dropout)
         
     def forward(self, x, value, key, src_mask, trg_mask):
+        # Self-attention with target mask (trg_mask) for preventing lookahead
         attention = self.attention(x, x, x, trg_mask)
+        # Apply dropout and normalization to the sum of attention output and input
         query = self.dropout(self.norm(attention + x))
+        # Process through transformer block with source mask (src_mask) to focus on relevant parts of the input
         out = self.transformer_block(value, key, query, src_mask)
         return out
-    
+
+""" 
+The Decoder class is a component of the transformer model that decodes the encoded input into the target language sequence. It uses embeddings for the target vocabulary and positions, passes the sequence through multiple decoder blocks (each performing self-attention and encoder-decoder attention), and finally produces predictions for the next words in the sequence through a linear layer.
+""" 
 class Decoder(nn.Module):
     def __init__(
         self,
@@ -229,9 +263,12 @@ class Decoder(nn.Module):
     ):
         super(Decoder, self).__init__()
         self.device = device
+        # Embedding for target vocabulary
         self.word_embedding = nn.Embedding(trg_vocab_size, embed_size)
+        # Positional embedding for target sequence
         self.position_embedding = nn.Embedding(max_length, embed_size)
         
+        # Decoder layers composed of multiple DecoderBlock instances
         self.layers = nn.ModuleList(
             [
                 DecoderBlock(embed_size, heads, forward_expansion, dropout, device)
@@ -239,39 +276,48 @@ class Decoder(nn.Module):
             ]
         )
         
+        # Final linear layer for output predictions
         self.fc_out = nn.Linear(embed_size, trg_vocab_size)
-        
+        # Dropout for regularization
         self.dropout = nn.Dropout(dropout)
         
     def forward(self, x, enc_out, src_mask, trg_mask):
+        # Get batch size and sequence length, then generate positional indices
         N, seq_length = x.shape
         positions = torch.arange(0, seq_length).expand(N, seq_length).to(self.device)
+        # Combine word and position embeddings with dropout
         x = self.dropout((self.word_embedding(x) + self.position_embedding(positions)))
         
+        # Process through each decoder layer
         for layer in self.layers:
             x = layer(x, enc_out, enc_out, src_mask, trg_mask)
         
-        out = self.fc_out(x) # prediction of what word is next
+        # Apply the final linear layer to get predictions
+        out = self.fc_out(x)
         return out
     
+""" 
+The Transformer class combines the encoder and decoder components, applying masks to handle padding and prevent lookahead. This design encapsulates the entire process of encoding the input, processing it through self-attention and feed-forward layers, and finally decoding it into the target sequence. Masks ensure the model treats padding appropriately and respects the sequential nature of language by preventing future information from influencing predictions.
+"""
+
 class Transformer(nn.Module):
     def __init__(
         self,
         src_vocab_size,
         trg_vocab_size,
-        src_pad_idx, # padding index, used for masking
-        trg_pad_idx, # padding index, used for masking
-        embed_size=256, # this might have to be adjusted due to GPU memory constraints
+        src_pad_idx,  # Index for source padding, used for mask creation
+        trg_pad_idx,  # Index for target padding, used for mask creation
+        embed_size=256,
         num_layers=6,
         forward_expansion=4,
         heads=8,
         dropout=0,
-        device="cuda", # change to "cpu" if you don't have a GPU
+        device="cuda",  # Can be set to "cpu" if no GPU is available
         max_length=100,
     ):
         super(Transformer, self).__init__()
         
-        # define encoder
+        # Encoder part of the Transformer
         self.encoder = Encoder(
             src_vocab_size,
             embed_size,
@@ -283,7 +329,7 @@ class Transformer(nn.Module):
             max_length,
         )
         
-        # define decoder
+        # Decoder part of the Transformer
         self.decoder = Decoder(
             trg_vocab_size,
             embed_size,
@@ -295,16 +341,18 @@ class Transformer(nn.Module):
             max_length,
         )
         
+        # Padding indexes for source and target
         self.src_pad_idx = src_pad_idx
         self.trg_pad_idx = trg_pad_idx
         self.device = device
         
     def make_src_mask(self, src):
-        # (N, 1, 1, src_len)
+        # Create a mask for the source input to ignore padding
         src_mask = (src != self.src_pad_idx).unsqueeze(1).unsqueeze(2)
         return src_mask.to(self.device)
     
     def make_trg_mask(self, trg):
+        # Create a mask for the target: prevent the model from looking ahead
         N, trg_len = trg.shape
         trg_mask = torch.tril(torch.ones((trg_len, trg_len))).expand(
             N, 1, trg_len, trg_len
@@ -319,25 +367,32 @@ class Transformer(nn.Module):
         out = self.decoder(trg, enc_src, src_mask, trg_mask)
         return out
 
+""" 
+The TransformerDemo class encapsulates the initialization and demonstration of a Transformer model for NLP tasks. It takes vocabulary sizes for source and target languages, padding indices, and device information (CPU/GPU) as inputs to set up the model. The class provides a run_demo method that executes a forward pass of the model with sample input and target data, showcasing how to prepare data, run predictions, and interpret the model's output dimensions. This class serves as a practical example of using the Transformer in a PyTorch-based workflow.
+"""
 
-# example to see if this runs
+# Define a class for demonstrating the Transformer model
+class TransformerDemo:
+    def __init__(self, src_vocab_size, trg_vocab_size, src_pad_idx, trg_pad_idx, device):
+        # Initialize the Transformer model with given parameters and assign it to the specified device (GPU/CPU)
+        self.model = Transformer(src_vocab_size, trg_vocab_size, src_pad_idx, trg_pad_idx).to(device)
+        self.device = device
+
+    # Function to run a demo prediction using the Transformer model
+    def run_demo(self, x, trg):
+        # Execute the model forward pass and trim the last token from the target for prediction purposes
+        out = self.model(x, trg[:, :-1])
+        # Print the shape of the output to check the model's prediction dimensions
+        print(out.shape)
+
+# This block runs if the script is executed as the main program
 if __name__ == "__main__":
-    # Check and print the PyTorch and CUDA versions
-    import torch
-    print("PyTorch version: ", torch.__version__)
-    print("CUDA version used by PyTorch: ", torch.version.cuda)
-    print("CUDA Available: ", torch.cuda.is_available())
-    
+    # Determine if a CUDA capable GPU is available and set the device accordingly
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    
+    # Create an instance of the demo class with specified parameters
+    demo = TransformerDemo(10, 10, 0, 0, device)
+    # Prepare input and target tensors, moving them to the chosen device
     x = torch.tensor([[1, 5, 6, 4, 3, 9, 5, 2, 0], [1, 8, 7, 3, 4, 5, 6, 7, 2]]).to(device)
     trg = torch.tensor([[1, 7, 4, 3, 5, 9, 2, 0], [1, 5, 6, 2, 4, 7, 6, 2]]).to(device)
-    
-    src_pad_idx = 0
-    trg_pad_idx = 0
-    src_vocab_size = 10
-    trg_vocab_size = 10
-    model = Transformer(src_vocab_size, trg_vocab_size, src_pad_idx, trg_pad_idx).to(device)
-    
-    out = model(x, trg[:, :-1])
-    print(out.shape) # [N, trg_len - 1, trg_vocab_size]
+    # Run the demo with the prepared data
+    demo.run_demo(x, trg)

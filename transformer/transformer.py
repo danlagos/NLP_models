@@ -1,75 +1,3 @@
-"""
-code to attention mechanism.  
-
-Reverse engineered peer reviewed article "Attention is all you need"
-
-encoder:
-receives input
-create emedding
-create positional encoding
-add positional encoding to embedding
-
-Encoder Attention Block
-    creat multi-head attention
-        input is split into multiple heads.  1 for Q, 1 for K, and 1 for V, 1 for add & norm layer.  this block only accepts input for Q, K, and V.
-        output is concatenated
-    add & norm layer
-        take input from multi-head attention and add it to the input
-        output is split in to 2 parts.  1 for add and norm layer and 1 for feed forward network
-    feed forward network
-        takes input from add & norm layer
-        output is passed to a add & norm layer
-    add & norm layer
-        take input from feed forward layer, and the previous add & norm layer
-        output
-end of encoder attention block 
-
-decoder:
-
-output fron encoder is split into two, and is passed to a multi-head attention block in the decoder.
-primary difference between decoder and encoder
-    decoder has a masked multi-head attention block.
-    a multi-head attention block that takes the output from the encoder (2 channels) and the output from the masked multi-head attention block.
-    
-receives input
-create emedding
-create positional encoding
-add positional encoding to embedding
-Decoder Attention Block
-    Masked Multi-head attention
-        input is split into multiple heads.  1 for Q, 1 for K, and 1 for V, 1 for add & norm layer.  this block only accepts input for Q, K, and V.
-        output is concatenated
-    add & norm layer
-        input comes from masked multi-head attention and the input
-        output is split into 2 parts.  1 for add & norm layer and 1 for another add & norm layer
-    Multi-head attention
-        input comes from encoder, 2 channels, and the output from the add & norm layer.  total of 3 channels
-        output is concatenated
-    add & norm layer
-        input comes from multi-head attention and the previous add & norm layer
-        output is split into 2 parts.  1 for add & norm layer and 1 for feed forward network
-    feed forward network
-        input comes from add & norm layer
-        output is passed to a add & norm layer
-    add & norm layer
-        input comes from feed forward network and the previous add & norm layer
-        output is passed to the next block
-    end of decoder attention block
-    
-    linear layer
-        input comes from the add & norm layer
-        output is passed to the softmax function
-    softmax function
-        input comes from the linear layer
-        output is the prediction
-        
-notes on multi-head attention:
-    takes embeddig inputs, say 256 dimensions, and split into 8 parts.  32 dimensions each.
-    each part is passed through a linear layer, through a scaled dot-prodcut Attention.
-        scaled dot-prodcut Attention: Attention(Q, K, V) = softmax(QK^T/sqrt(d_k))V
-    this output is concatenated and passed through another linear layer.
-"""
-
 import torch
 import torch.nn as nn
 
@@ -385,6 +313,10 @@ class TransformerDemo:
         # Print the shape of the output to check the model's prediction dimensions
         print(out.shape)
 
+""" 
+This code block serves as the main entry point for executing a demonstration of the Transformer model when the script is run directly. It begins by checking for the availability of a CUDA-capable GPU to utilize hardware acceleration for computations, defaulting to the CPU if a GPU is not available. It then instantiates the TransformerDemo class, which encapsulates the setup and operation of the Transformer model, including its initialization with specified vocabulary sizes and padding indices. The script prepares input (x) and target (trg) tensors, which are randomly generated sequences of integers representing encoded text, and transfers them to the appropriate computational device (GPU or CPU). Finally, it executes the model's forward pass using these tensors to demonstrate the Transformer's predictive capabilities. The output's shape is printed to verify the model's functionality and to illustrate the dimensions of the predicted sequences.
+"""
+
 # This block runs if the script is executed as the main program
 if __name__ == "__main__":
     # Determine if a CUDA capable GPU is available and set the device accordingly
@@ -392,7 +324,7 @@ if __name__ == "__main__":
     # Create an instance of the demo class with specified parameters
     demo = TransformerDemo(10, 10, 0, 0, device)
     # Prepare input and target tensors, moving them to the chosen device
-    x = torch.tensor([[1, 5, 6, 4, 3, 9, 5, 2, 0], [1, 8, 7, 3, 4, 5, 6, 7, 2]]).to(device)
-    trg = torch.tensor([[1, 7, 4, 3, 5, 9, 2, 0], [1, 5, 6, 2, 4, 7, 6, 2]]).to(device)
+    x = torch.tensor([[6, 3, 7, 4, 6, 9, 2, 6, 7], [4, 3, 7, 7, 2, 5, 4, 1, 7]]).to(device)
+    trg = torch.tensor([[5, 1, 4, 0, 9, 5, 8, 0], [9, 2, 6, 3, 8, 2, 4, 2]]).to(device)
     # Run the demo with the prepared data
     demo.run_demo(x, trg)

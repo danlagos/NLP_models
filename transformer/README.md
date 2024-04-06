@@ -11,8 +11,8 @@ You will need the most updated version of Python, and Pytorch.  Make sure your p
 
 ### Project Structure
 - transformer.py: The main Python script implementing the transformer model based on the pseudo code
-- pseudo_code.md: Contains the initial pseudo code outlining the logic and structure of the transformer model
-- documentation.md: Detailed documentation of the code and the model architecture.
+- pseudo_code_transformer.md: Contains the initial pseudo code outlining the logic and structure of the transformer model
+- documentation_transformer.md: Detailed documentation of the code and the model architecture.
 - diagrams/: Directory containing any diagrams or visual representations of the model.
 
 ### Coding Procedures

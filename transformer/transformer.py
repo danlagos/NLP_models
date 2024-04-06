@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 
 """ 
-The class initializes with the size of embeddings and the number of heads for multi-head attention. It ensures the embedding size is divisible by the number of heads. Inside, linear layers for values, keys, queries, and a final output are set up. The forward method reshapes inputs for multi-head processing, computes attention scores using scaled dot products (enhanced by a masking mechanism for padding), and combines the results through weighted sum and a final linear transformation
+SelfAttention class initializes with the size of embeddings and the number of heads for multi-head attention. It ensures the embedding size is divisible by the number of heads. Inside, linear layers for values, keys, queries, and a final output are set up. The forward method reshapes inputs for multi-head processing, computes attention scores using scaled dot products (enhanced by a masking mechanism for padding), and combines the results through weighted sum and a final linear transformation
 """
 # Self Attention Block
 class SelfAttention(nn.Module):
@@ -60,8 +60,7 @@ class SelfAttention(nn.Module):
         return out
 
 """ 
-start transformer block 
-This class defines a single transformer block, which includes self-attention followed by layer normalization, a feed-forward network, and another layer normalization step, all with dropout for regularization. The process integrates self-attention output with the original input (residual connection) before normalization, mirroring the transformer's characteristic path of flowing information
+TransformerBlock class defines a single transformer block, which includes self-attention followed by layer normalization, a feed-forward network, and another layer normalization step, all with dropout for regularization. The process integrates self-attention output with the original input (residual connection) before normalization, mirroring the transformer's characteristic path of flowing information
 """
 # Transformer Block
 class TransformerBlock(nn.Module):
@@ -92,8 +91,7 @@ class TransformerBlock(nn.Module):
         return out # Return output
     
 """
-start encoder    
-This Encoder class is designed for the encoding phase of a transformer model. It creates embeddings for input tokens and applies positional encoding to retain information about the position of tokens in the input sequence. These embeddings are then processed through multiple transformer blocks, which apply self-attention and feed-forward networks to encode the input into a format useful for downstream tasks.
+ Encoder class is designed for the encoding phase of a transformer model. It creates embeddings for input tokens and applies positional encoding to retain information about the position of tokens in the input sequence. These embeddings are then processed through multiple transformer blocks, which apply self-attention and feed-forward networks to encode the input into a format useful for downstream tasks.
 """
 # Start encoder
 class Encoder(nn.Module):
@@ -227,7 +225,6 @@ class Decoder(nn.Module):
 """ 
 The Transformer class combines the encoder and decoder components, applying masks to handle padding and prevent lookahead. This design encapsulates the entire process of encoding the input, processing it through self-attention and feed-forward layers, and finally decoding it into the target sequence. Masks ensure the model treats padding appropriately and respects the sequential nature of language by preventing future information from influencing predictions.
 """
-
 class Transformer(nn.Module):
     def __init__(
         self,
@@ -298,7 +295,6 @@ class Transformer(nn.Module):
 """ 
 The TransformerDemo class encapsulates the initialization and demonstration of a Transformer model for NLP tasks. It takes vocabulary sizes for source and target languages, padding indices, and device information (CPU/GPU) as inputs to set up the model. The class provides a run_demo method that executes a forward pass of the model with sample input and target data, showcasing how to prepare data, run predictions, and interpret the model's output dimensions. This class serves as a practical example of using the Transformer in a PyTorch-based workflow.
 """
-
 # Define a class for demonstrating the Transformer model
 class TransformerDemo:
     def __init__(self, src_vocab_size, trg_vocab_size, src_pad_idx, trg_pad_idx, device):
@@ -316,8 +312,6 @@ class TransformerDemo:
 """ 
 This code block serves as the main entry point for executing a demonstration of the Transformer model when the script is run directly. It begins by checking for the availability of a CUDA-capable GPU to utilize hardware acceleration for computations, defaulting to the CPU if a GPU is not available. It then instantiates the TransformerDemo class, which encapsulates the setup and operation of the Transformer model, including its initialization with specified vocabulary sizes and padding indices. The script prepares input (x) and target (trg) tensors, which are randomly generated sequences of integers representing encoded text, and transfers them to the appropriate computational device (GPU or CPU). Finally, it executes the model's forward pass using these tensors to demonstrate the Transformer's predictive capabilities. The output's shape is printed to verify the model's functionality and to illustrate the dimensions of the predicted sequences.
 """
-
-# This block runs if the script is executed as the main program
 if __name__ == "__main__":
     # Determine if a CUDA capable GPU is available and set the device accordingly
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
